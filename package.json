@@ -1,0 +1,23 @@
+{
+  "name": "youtube-traveller",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "start": "ts-node index.ts",
+    "install": "ts-node install-browser.ts",
+    "clean": "rimraf ./output"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "@puppeteer/browsers": "^2.4.0",
+    "puppeteer-core": "^23.3.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.5.4",
+    "rimraf": "^6.0.1",
+    "ts-node": "^10.9.2"
+  }
+}
