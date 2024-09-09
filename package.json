@@ -12,6 +12,7 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
+    "@mrodrig/json-2-csv-cli": "^5.5.5",
     "@puppeteer/browsers": "^2.4.0",
     "@types/lodash": "^4.17.7",
     "googleapis": "^144.0.0",

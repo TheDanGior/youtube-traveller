@@ -7,7 +7,7 @@ import { VideoDetails } from "./types";
 
 // Modify this to the youtube video you want to start with 
 const STARTING_LINK = "https://www.youtube.com/watch?v=aRcUVhVlSHg";
-const NUMBER_OF_ITERATIONS = 100;
+const NUMBER_OF_ITERATIONS = 1000;
 
 const WINDOW_WIDTH = 1024;
 const WINDOW_HEIGHT = 768;
@@ -19,7 +19,7 @@ const YOUTUBE_API_KEY = process.env.YOUTUBE_API_KEY;
 async function main(): Promise<void> {
   const outputDir = `output/${STARTING_LINK.split("?v=")[1]}/`;
   const screenshotDir = outputDir + "/screenshots";
-  const outputPath = outputDir + "/output.txt";
+  const outputPath = outputDir + "/output.json";
   fs.mkdirSync(screenshotDir, { recursive: true });
   fs.writeFileSync(outputPath, "[]", 'utf-8');
 
@@ -68,26 +68,28 @@ async function getVideoDetails(url: string, num: number): Promise<VideoDetails> 
     const item = resp?.data?.items?.[0] || { id };
     const good = {
       order: num,
-      kind: item.kind,
       id: item.id,
-      thumbnailUrl: item.snippet.thumbnails.default.url,
-      publishedAt: item.snippet.publishedAt,
+      channel: item.snippet.channelTitle,
       title: item.snippet.title,
-      channelId: item.snippet.channelId,
       description: String(item.snippet.description).replace(/\r?\n|\r/g, " ").trim(),
-      channelTitle: item.snippet.channelTitle,
-      categoryId: item.snippet.categoryId,
+      viewCount:item.statistics.viewCount,
+      likeCount:item.statistics.likeCount,
+      commentCount:item.statistics.commentCount,
+      publishedAt: item.snippet.publishedAt,
+      topicCategories: item.topicDetails.topicCategories,
+      licensedContent: item.contentDetails.licensedContent,
       liveBroadcastContent: item.snippet.liveBroadcastContent,
+      kind: item.kind,
       defaultLanguage: item.snippet.defaultLanguage,
       defaultAudioLanguage: item.snippet.defaultAudioLanguage,
-      licensedContent: item.contentDetails.licensedContent,
-      topicCategories: item.topicDetails.topicCategories,
+      channelId: item.snippet.channelId,
+      categoryId: item.snippet.categoryId,
+      thumbnailUrl: item.snippet.thumbnails.default.url,
     };
 
-    merge(good, item.statistics);
     return good;
   } catch (e) {
-    console.error(JSON.stringify(e, null, 2));
+    // console.error(JSON.stringify(e, null, 2));
     return { order: num, id }
   }
 }
