@@ -49,15 +49,11 @@ async function waitForVideoToPlay(page: Page): Promise<any> {
 
   var classes: string[] = await getClasses(vidContainer);
   while (classes.includes("ad-showing")) {
-    // check if this button is visible: ytp-skip-ad-button ytp-ad-component--clickable
     try {
-      const button = await page
-        .locator("button.ytp-skip-ad-button")
-        .setTimeout(5000)
-        .waitHandle();
+      const button = await page.locator("button.ytp-skip-ad-button").setTimeout(5000).waitHandle();
       await button.click();
       await waitForVidStart(page);
-    } catch (e) {}
+    } catch (e) { }
     classes = await getClasses(vidContainer);
   }
 }
@@ -83,9 +79,7 @@ async function getClasses(vidContainer: ElementHandle) {
 }
 
 async function playNext(page: Page) {
-  await page.evaluate(
-    'document.querySelector(".ytp-autonav-endscreen-upnext-play-button").click()',
-  );
+  return page.evaluate('document.querySelector(".ytp-autonav-endscreen-upnext-play-button").click()');
 }
 
 async function getBrowser(): Promise<Browser> {
@@ -111,8 +105,6 @@ async function getBrowser(): Promise<Browser> {
       "--no-sandbox",
       "--disable-audio-output",
       "--autoplay-policy=no-user-gesture-required",
-      "--incognito",
-      "--disable-web-security",
     ],
   });
 }
