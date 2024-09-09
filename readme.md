@@ -16,3 +16,14 @@ It works by using puppeteer to open a youtube video in browser, skipping passed 
 This runs in a different instance of chrome from your installed browser. To hopefully not influence the results too much and not destroy your youtube recommendations. The puppeteer user is not logged in. 
 
 You can run as a logged in user by opening the test version of chrome in the `.cache` directory and logging into an account.
+
+To save the video details, aquire an api key for the youtube v3 api and set the environment variable `YOUTUBE_API_KEY` to that key.
+
+Linux Shell
+```
+ export YOUTUBE_API_KEY=<KEY>
+```
+Windows PowerShell
+```
+ $env:YOUTUBE_API_KEY="<KEY>"
+```

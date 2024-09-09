@@ -1,41 +1,95 @@
 import * as browsers from "@puppeteer/browsers";
-import puppeteer, { Browser, ElementHandle, Page } from "puppeteer-core";
+import { google } from 'googleapis';
+import { merge } from 'lodash';
 import fs from "node:fs";
+import puppeteer, { Browser, ElementHandle, Page } from "puppeteer-core";
+import { VideoDetails } from "./types";
 
+// Modify this to the youtube video you want to start with 
 const STARTING_LINK = "https://www.youtube.com/watch?v=aRcUVhVlSHg";
+const NUMBER_OF_ITERATIONS = 100;
+
+const WINDOW_WIDTH = 1024;
+const WINDOW_HEIGHT = 768;
+
+// Set the environment variable YOUTUBE_API_KEY to get data for each video
+const YOUTUBE_API_KEY = process.env.YOUTUBE_API_KEY;
+
 
 async function main(): Promise<void> {
   const outputDir = `output/${STARTING_LINK.split("?v=")[1]}/`;
   const screenshotDir = outputDir + "/screenshots";
   const outputPath = outputDir + "/output.txt";
   fs.mkdirSync(screenshotDir, { recursive: true });
-  fs.writeFileSync(outputPath, "");
+  fs.writeFileSync(outputPath, "[]", 'utf-8');
 
   const browser: Browser = await getBrowser();
   const page: Page = await browser.newPage();
 
-  await page.setBypassCSP(true);
-  await page.setViewport({ width: 1024, height: 768 });
+  await page.setViewport({ width: WINDOW_WIDTH, height: WINDOW_HEIGHT });
   await page.goto(STARTING_LINK, { waitUntil: ["load", "networkidle0"] });
   await waitForVideoToPlay(page);
+  const a = await getVideoDetails(page.url(), 0);
+  console.log("00000: " + page.url() + ": " + a?.title);
+  saveVideoDetails(outputPath, a);
+  await page.screenshot({ path: `${screenshotDir}/screenshot-${String(0).padStart(5, "0")}.png` });
 
-  console.log(String(0).padStart(5, "0") + ": " + page.url());
-  await page.screenshot({
-    path: `${screenshotDir}/screenshot-${String(0).padStart(5, "0")}.png`,
-  });
-
-  for (var i = 1; i <= 5000; i++) {
+  for (var i = 1; i <= NUMBER_OF_ITERATIONS; i++) {
     await playNext(page);
     await waitForVideoToPlay(page);
-    console.log(String(i).padStart(5, "0") + ": " + page.url());
-    fs.appendFileSync(outputPath, page.url() + "\n");
-    await page.screenshot({
-      path: `${screenshotDir}/screenshot-${String(i).padStart(5, "0")}.png`,
-    });
+
+    const a = await getVideoDetails(page.url(), i);
+    console.log(String(i).padStart(5, "0") + ": " + page.url() + ": " + a?.title);
+    saveVideoDetails(outputPath, a);
+
+    await page.screenshot({ path: `${screenshotDir}/screenshot-${String(i).padStart(5, "0")}.png` });
   }
 
   await page.close();
   await browser.close();
+}
+
+function saveVideoDetails(outputPath: string, a: VideoDetails) {
+  var fileData: VideoDetails[] = JSON.parse(fs.readFileSync(outputPath, 'utf-8'));
+  fileData.push(a);
+  fs.writeFileSync(outputPath, JSON.stringify(fileData, null, 2), 'utf-8');
+}
+
+async function getVideoDetails(url: string, num: number): Promise<VideoDetails> {
+  const id = url.split('?v=')[1]
+  if (!YOUTUBE_API_KEY) return { order: num, id };
+
+  try {
+    const resp: any = await google.youtube('v3').videos.list({
+      auth: YOUTUBE_API_KEY,
+      id: [id],
+      part: ['snippet', 'id', 'statistics', 'contentDetails', 'topicDetails'],
+    });
+    const item = resp?.data?.items?.[0] || { id };
+    const good = {
+      order: num,
+      kind: item.kind,
+      id: item.id,
+      thumbnailUrl: item.snippet.thumbnails.default.url,
+      publishedAt: item.snippet.publishedAt,
+      title: item.snippet.title,
+      channelId: item.snippet.channelId,
+      description: String(item.snippet.description).replace(/\r?\n|\r/g, " ").trim(),
+      channelTitle: item.snippet.channelTitle,
+      categoryId: item.snippet.categoryId,
+      liveBroadcastContent: item.snippet.liveBroadcastContent,
+      defaultLanguage: item.snippet.defaultLanguage,
+      defaultAudioLanguage: item.snippet.defaultAudioLanguage,
+      licensedContent: item.contentDetails.licensedContent,
+      topicCategories: item.topicDetails.topicCategories,
+    };
+
+    merge(good, item.statistics);
+    return good;
+  } catch (e) {
+    console.error(JSON.stringify(e, null, 2));
+    return { order: num, id }
+  }
 }
 
 async function waitForVideoToPlay(page: Page): Promise<any> {
@@ -47,7 +101,7 @@ async function waitForVideoToPlay(page: Page): Promise<any> {
 
   await waitForVidStart(page);
 
-  var classes: string[] = await getClasses(vidContainer);
+  var classes = await getClasses(vidContainer);
   while (classes.includes("ad-showing")) {
     try {
       const button = await page.locator("button.ytp-skip-ad-button").setTimeout(5000).waitHandle();
@@ -60,22 +114,15 @@ async function waitForVideoToPlay(page: Page): Promise<any> {
 
 async function waitForVidStart(page: Page) {
   return Promise.all([
-    page.waitForFunction(
-      'document.querySelector("video.html5-main-video").readyState > 2',
-    ),
-    page.waitForFunction(
-      'document.querySelector("video.html5-main-video").currentTime > 1',
-    ),
+    page.waitForFunction('document.querySelector("video.html5-main-video").readyState > 2'),
+    page.waitForFunction('document.querySelector("video.html5-main-video").currentTime > 1'),
   ]);
 }
 
-async function getClasses(vidContainer: ElementHandle) {
-  return (
-    (await vidContainer
-      ?.getProperty("className")
-      .then((a) => a.jsonValue())
-      .then((a) => a.split(" "))) || []
-  );
+async function getClasses(vidContainer: ElementHandle): Promise<string[]> {
+  return vidContainer.getProperty("className")
+    .then((a) => a.jsonValue())
+    .then((a) => a.trim().split(" "));
 }
 
 async function playNext(page: Page) {
@@ -84,19 +131,10 @@ async function playNext(page: Page) {
 
 async function getBrowser(): Promise<Browser> {
   const cacheDir: string = __dirname + "/.cache";
-  const platform: browsers.BrowserPlatform =
-    browsers.detectBrowserPlatform() || browsers.BrowserPlatform.LINUX;
+  const platform: browsers.BrowserPlatform = browsers.detectBrowserPlatform() || browsers.BrowserPlatform.LINUX;
   const browser: browsers.Browser = browsers.Browser.CHROME;
-  const buildId: string = await browsers.resolveBuildId(
-    browsers.Browser.CHROME,
-    platform,
-    "stable",
-  );
-  const executablePath: string = browsers.computeExecutablePath({
-    cacheDir,
-    browser,
-    buildId,
-  });
+  const buildId: string = await browsers.resolveBuildId(browsers.Browser.CHROME, platform, "stable",);
+  const executablePath: string = browsers.computeExecutablePath({ cacheDir, browser, buildId, });
 
   return puppeteer.launch({
     executablePath,
@@ -105,6 +143,7 @@ async function getBrowser(): Promise<Browser> {
       "--no-sandbox",
       "--disable-audio-output",
       "--autoplay-policy=no-user-gesture-required",
+      `--window-size=${WINDOW_WIDTH},${WINDOW_HEIGHT}`
     ],
   });
 }
