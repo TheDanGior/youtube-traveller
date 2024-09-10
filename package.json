@@ -9,7 +9,7 @@
   },
   "keywords": [],
   "author": "",
-  "license": "ISC",
+  "license": "MIT",
   "description": "",
   "dependencies": {
     "@mrodrig/json-2-csv-cli": "^5.5.5",
