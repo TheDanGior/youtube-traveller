@@ -5,17 +5,19 @@
   "scripts": {
     "start": "ts-node index.ts",
     "postinstall": "ts-node install-browser.ts",
-    "clean": "rimraf ./output"
+    "clean": "rimraf ./output",
+    "csv": "ts-node csv.ts"
   },
   "keywords": [],
   "author": "",
   "license": "MIT",
   "description": "",
   "dependencies": {
-    "@mrodrig/json-2-csv-cli": "^5.5.5",
     "@puppeteer/browsers": "^2.4.0",
     "@types/lodash": "^4.17.7",
+    "glob": "^11.0.0",
     "googleapis": "^144.0.0",
+    "json-2-csv": "^5.5.5",
     "lodash": "^4.17.21",
     "puppeteer-core": "^23.3.0"
   },

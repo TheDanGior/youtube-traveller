@@ -4,9 +4,10 @@ import { merge } from 'lodash';
 import fs from "node:fs";
 import puppeteer, { Browser, ElementHandle, Page } from "puppeteer-core";
 import { VideoDetails } from "./types";
+import csv from './csv'
 
 // Modify this to the youtube video you want to start with 
-const STARTING_LINK = "https://www.youtube.com/watch?v=aRcUVhVlSHg";
+const STARTING_LINK = "https://www.youtube.com/watch?v=bEweK7ffTcQ";
 const NUMBER_OF_ITERATIONS = 1000;
 
 const WINDOW_WIDTH = 1024;
@@ -17,7 +18,8 @@ const YOUTUBE_API_KEY = process.env.YOUTUBE_API_KEY;
 
 
 async function main(): Promise<void> {
-  const outputDir = `output/${STARTING_LINK.split("?v=")[1]}/`;
+  const videoId = STARTING_LINK.split("?v=")[1];
+  const outputDir = `output/${videoId}/`;
   const screenshotDir = outputDir + "/screenshots";
   const outputPath = outputDir + "/output.json";
   fs.mkdirSync(screenshotDir, { recursive: true });
@@ -47,6 +49,8 @@ async function main(): Promise<void> {
 
   await page.close();
   await browser.close();
+
+  csv(videoId, true);
 }
 
 function saveVideoDetails(outputPath: string, a: VideoDetails) {
