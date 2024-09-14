@@ -1,7 +1,7 @@
 export interface VideoDetails {
     order: number,
     id: string;
-    title?: string;
+    title: string;
     kind?: string;
     thumbnailUrl?: string;
     publishedAt?: string;

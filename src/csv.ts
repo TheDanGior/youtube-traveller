@@ -6,8 +6,7 @@ import { VideoDetails } from './types';
 
 
 export default function main(id ?: string, force : boolean=false) {
-
-    var files = globSync(`${__dirname}/output/*/output.json`);
+    var files = globSync(`${process.cwd()}/output/*/output.json`);
     if(!!id) {
         files= files.filter((f) => f.includes(id));
     }

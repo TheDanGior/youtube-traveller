@@ -1,29 +1,37 @@
 {
   "name": "youtube-traveller",
-  "version": "1.0.0",
-  "main": "index.js",
+  "version": "1.1.0",
   "scripts": {
-    "start": "ts-node index.ts",
-    "postinstall": "ts-node install-browser.ts",
-    "clean": "rimraf ./output",
-    "csv": "ts-node csv.ts"
+    "start": "tsx ./src/index.ts",
+    "start:dist": "node dist/index.js",
+    "postinstall": "tsx ./src/install-browser.ts",
+    "clean": "rimraf ./output ./dist",
+    "csv": "tsx ./src/csv.ts",
+    "build": "pkgroll --clean-dist"
   },
+  "type": "commonjs",
+  "bin": "./dist/index.js",
   "keywords": [],
-  "author": "",
+  "author": "Daniel Giorgetti",
   "license": "MIT",
-  "description": "",
+  "description": "A tool to see where the youtube algorithm takes you",
   "dependencies": {
     "@puppeteer/browsers": "^2.4.0",
-    "@types/lodash": "^4.17.7",
+    "get-video-id": "^4.1.7",
     "glob": "^11.0.0",
     "googleapis": "^144.0.0",
     "json-2-csv": "^5.5.5",
-    "lodash": "^4.17.21",
-    "puppeteer-core": "^23.3.0"
+    "puppeteer-core": "^23.3.0",
+    "yargs": "^17.7.2"
   },
   "devDependencies": {
     "@types/node": "^22.5.4",
+    "@types/yargs": "^17.0.33",
+    "pkgroll": "^2.5.0",
     "rimraf": "^6.0.1",
-    "ts-node": "^10.9.2"
+    "tsx": "^4.19.1"
+  },
+  "engines": {
+    "node": ">=20.17"
   }
 }

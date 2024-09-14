@@ -7,12 +7,13 @@ import {
 } from "@puppeteer/browsers";
 
 async function main() {
-  const cacheDir = __dirname + "/.cache";
+  const cacheDir = process.cwd() + "/.cache";
   const browser = Browser.CHROME;
-  const platform: BrowserPlatform =
-    detectBrowserPlatform() || BrowserPlatform.LINUX;
+  const platform: BrowserPlatform = detectBrowserPlatform() || BrowserPlatform.LINUX;
   const buildId = await resolveBuildId(browser, platform, "stable");
   await install({ browser, buildId, cacheDir });
 }
 
-main();
+if (require.main === module) {
+  main();
+}

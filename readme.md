@@ -1,29 +1,36 @@
 # Youtube Traveller
 
-Youtube Traveller is a tool that can quickly go though youtube and to see where the algorithm takes you.
+Youtube Traveller is an automated tool that can quickly navigate though youtube autoplay suggestions to see where the algorithm takes you.
 
-It works by using puppeteer to open a youtube video in browser, skipping passed any pre-roll ads, going to the autoplay video, and repeating.
+It works by opening a browser, navigating to the given youtube video, skipping any pre-roll ads, and clicking the hidden autoplay "Play Now" button for as long as you want.
 
-## Setup
+## Quick Start
 1. Install Node.js 20
 2. Run `npm ci`
-3. Run `npm run install`
-    * This installs a test version of chrome which will be controlled by puppeteer into the `.cache` directory
-4. Change `STARTING_LINK` constant at the top of `index.ts` to the video you want to start with.
-5. Run `npm start` and see where the youtube algoritm takes you
+5. Run `npm start -- -u <youtube url>`
+
+## CLI Options
+```
+Options:
+      --help             Show help                                     [boolean]
+      --version          Show version number                           [boolean]
+  -u, --url              The YouTube URL to start with       [string] [required]
+      --no-csv           Skip csv generation at the end
+                                                      [boolean] [default: false]
+  -i, --iterations       The maximum number of videos to follow
+                                                         [number] [default: 100]
+      --output-dir       The location to save results
+                                                    [string] [default: "output"]
+      --youtube-api-key  Youtube api key, may also be set in the environment
+                         variable YOUTUBE_API_KEY                       [string]
+
+```
 
 ## Details
-This runs in a different instance of chrome from your installed browser. To hopefully not influence the results too much and not destroy your youtube recommendations. The puppeteer user is not logged in. 
+This runs in a seperate version of chrome downloaded to the `.cache` directory. It will not interfear with your regular browser or any services you are logged into. It does not run headless, it will open up a window which may take focus away from anything else you care working on. Running headless may be possible in a future version.
 
-You can run as a logged in user by opening the test version of chrome in the `.cache` directory and logging into an account.
+To save the video details, save a YouTube API v3 api key to the `YOUTUBE_API_KEY` environemtn variable, or use the `--youtube-api-key` flag.
 
-To save the video details, aquire an api key for the youtube v3 api and set the environment variable `YOUTUBE_API_KEY` to that key.
-
-Linux Shell
-```
- export YOUTUBE_API_KEY=<KEY>
-```
-Windows PowerShell
-```
- $env:YOUTUBE_API_KEY="<KEY>"
-```
+## Future Enhancements
+* Run headless
+* Allow login to a youtube account

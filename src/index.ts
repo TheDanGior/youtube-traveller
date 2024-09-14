@@ -1,25 +1,63 @@
+#!/usr/bin/env node
+
 import * as browsers from "@puppeteer/browsers";
+// import getVideoId from 'get-video-id';
 import { google } from 'googleapis';
-import { merge } from 'lodash';
 import fs from "node:fs";
 import puppeteer, { Browser, ElementHandle, Page } from "puppeteer-core";
-import { VideoDetails } from "./types";
-import csv from './csv'
-
-// Modify this to the youtube video you want to start with 
-const STARTING_LINK = "https://www.youtube.com/watch?v=bEweK7ffTcQ";
-const NUMBER_OF_ITERATIONS = 1000;
+import yargs from 'yargs';
+import { hideBin } from 'yargs/helpers';
+import csv from './csv';
+import {VideoDetails} from './types';
 
 const WINDOW_WIDTH = 1024;
 const WINDOW_HEIGHT = 768;
 
-// Set the environment variable YOUTUBE_API_KEY to get data for each video
-const YOUTUBE_API_KEY = process.env.YOUTUBE_API_KEY;
+const opts = yargs(hideBin(process.argv))
+  .option('url', {
+    alias: 'u',
+    type: 'string',
+    description: 'The YouTube URL to start with',
+    requiresArg: true
+  })
+  .option('no-csv', {
+    type: 'boolean',
+    description: 'Skip csv generation at the end',
+    default: false
+  })
+  .option('iterations', {
+    alias: 'i',
+    type: 'number',
+    description: 'The maximum number of videos to follow',
+    default: 100
+  })
+  .option('output-dir', {
+    type: "string",
+    description: "The location to save results",
+    default: 'output'
+  })
+  .option('youtube-api-key', {
+    type: 'string',
+    description: 'Youtube api key, may also be set in the environment variable YOUTUBE_API_KEY'
+  })
+  .demandOption(['url'])
+  .parseSync();
 
+const STARTING_LINK = opts.url;
+const NUMBER_OF_ITERATIONS = opts.iterations;
+const CREATE_CSV = !opts.noCsv;
+const BASE_OUTPUT_DIR = opts.outputDir;
+const YOUTUBE_API_KEY = opts.youtubeApiKey || process.env.YOUTUBE_API_KEY;
 
 async function main(): Promise<void> {
-  const videoId = STARTING_LINK.split("?v=")[1];
-  const outputDir = `output/${videoId}/`;
+  const getVideoId = await import('get-video-id');
+  const videoId = getVideoId.default(STARTING_LINK);
+  if (!videoId.id) {
+    console.error('Unable to get video ID from ' + STARTING_LINK);
+    process.exit(2);
+  }
+
+  const outputDir = `${BASE_OUTPUT_DIR}/${videoId.id}/`;
   const screenshotDir = outputDir + "/screenshots";
   const outputPath = outputDir + "/output.json";
   fs.mkdirSync(screenshotDir, { recursive: true });
@@ -29,19 +67,19 @@ async function main(): Promise<void> {
   const page: Page = await browser.newPage();
 
   await page.setViewport({ width: WINDOW_WIDTH, height: WINDOW_HEIGHT });
-  await page.goto(STARTING_LINK, { waitUntil: ["load", "networkidle0"] });
+  await page.goto(STARTING_LINK, { waitUntil: ["load", "networkidle2"] });
   await waitForVideoToPlay(page);
   const a = await getVideoDetails(page.url(), 0);
   console.log("00000: " + page.url() + ": " + a?.title);
   saveVideoDetails(outputPath, a);
-  await page.screenshot({ path: `${screenshotDir}/screenshot-${String(0).padStart(5, "0")}.png` });
+  await page.screenshot({ path: `${screenshotDir}/screenshot-00000.png` });
 
   for (var i = 1; i <= NUMBER_OF_ITERATIONS; i++) {
     await playNext(page);
     await waitForVideoToPlay(page);
 
     const a = await getVideoDetails(page.url(), i);
-    console.log(String(i).padStart(5, "0") + ": " + page.url() + ": " + a?.title);
+    console.log(String(i).padStart(5, "0") + ": " + page.url() + ": " + a.title || '');
     saveVideoDetails(outputPath, a);
 
     await page.screenshot({ path: `${screenshotDir}/screenshot-${String(i).padStart(5, "0")}.png` });
@@ -50,7 +88,10 @@ async function main(): Promise<void> {
   await page.close();
   await browser.close();
 
-  csv(videoId, true);
+
+  if (CREATE_CSV) {
+    csv(videoId.id || undefined, true);
+  }
 }
 
 function saveVideoDetails(outputPath: string, a: VideoDetails) {
@@ -60,25 +101,26 @@ function saveVideoDetails(outputPath: string, a: VideoDetails) {
 }
 
 async function getVideoDetails(url: string, num: number): Promise<VideoDetails> {
-  const id = url.split('?v=')[1]
-  if (!YOUTUBE_API_KEY) return { order: num, id };
+  const getVideoId = await import('get-video-id');
+  const videoId = getVideoId.default(url);
+  if (!videoId.id || !YOUTUBE_API_KEY) return { order: num, id: videoId.id || '', title: '' };
 
   try {
     const resp: any = await google.youtube('v3').videos.list({
       auth: YOUTUBE_API_KEY,
-      id: [id],
+      id: [videoId.id],
       part: ['snippet', 'id', 'statistics', 'contentDetails', 'topicDetails'],
     });
-    const item = resp?.data?.items?.[0] || { id };
+    const item = resp?.data?.items?.[0] || { id: videoId.id };
     const good = {
       order: num,
       id: item.id,
       channel: item.snippet.channelTitle,
       title: item.snippet.title,
-      description: String(item.snippet.description).replace(/\r?\n|\r/g, " ").trim(),
-      viewCount:item.statistics.viewCount,
-      likeCount:item.statistics.likeCount,
-      commentCount:item.statistics.commentCount,
+      description: String(item.snippet.description).trim(),
+      viewCount: item.statistics.viewCount,
+      likeCount: item.statistics.likeCount,
+      commentCount: item.statistics.commentCount,
       publishedAt: item.snippet.publishedAt,
       topicCategories: item.topicDetails.topicCategories,
       licensedContent: item.contentDetails.licensedContent,
@@ -94,7 +136,7 @@ async function getVideoDetails(url: string, num: number): Promise<VideoDetails> 
     return good;
   } catch (e) {
     // console.error(JSON.stringify(e, null, 2));
-    return { order: num, id }
+    return { order: num, id: videoId.id, title: '' }
   }
 }
 
@@ -136,7 +178,7 @@ async function playNext(page: Page) {
 }
 
 async function getBrowser(): Promise<Browser> {
-  const cacheDir: string = __dirname + "/.cache";
+  const cacheDir: string = process.cwd() + "/.cache";
   const platform: browsers.BrowserPlatform = browsers.detectBrowserPlatform() || browsers.BrowserPlatform.LINUX;
   const browser: browsers.Browser = browsers.Browser.CHROME;
   const buildId: string = await browsers.resolveBuildId(browsers.Browser.CHROME, platform, "stable",);
@@ -154,4 +196,6 @@ async function getBrowser(): Promise<Browser> {
   });
 }
 
-main();
+if (require.main === module) {
+  main();
+}
