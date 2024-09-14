@@ -6,8 +6,7 @@ It works by opening a browser, navigating to the given youtube video, skipping a
 
 ## Quick Start
 1. Install Node.js 20
-2. Run `npm ci`
-5. Run `npm start -- -u <youtube url>`
+2. Run `npx youtube-traveller -u <youtube url>`
 
 ## CLI Options
 ```
