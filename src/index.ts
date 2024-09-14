@@ -1,13 +1,11 @@
-#!/usr/bin/env node
-
 import * as browsers from "@puppeteer/browsers";
-// import getVideoId from 'get-video-id';
 import { google } from 'googleapis';
 import fs from "node:fs";
 import puppeteer, { Browser, ElementHandle, Page } from "puppeteer-core";
 import yargs from 'yargs';
 import { hideBin } from 'yargs/helpers';
 import csv from './csv';
+import * as installBrowser from './browser'
 import {VideoDetails} from './types';
 
 const WINDOW_WIDTH = 1024;
@@ -50,6 +48,15 @@ const BASE_OUTPUT_DIR = opts.outputDir;
 const YOUTUBE_API_KEY = opts.youtubeApiKey || process.env.YOUTUBE_API_KEY;
 
 async function main(): Promise<void> {
+
+  console.log({
+    STARTING_LINK,
+    NUMBER_OF_ITERATIONS,
+    CREATE_CSV,
+    BASE_OUTPUT_DIR,
+    YOUTUBE_API_KEY
+  })
+
   const getVideoId = await import('get-video-id');
   const videoId = getVideoId.default(STARTING_LINK);
   if (!videoId.id) {
@@ -178,14 +185,11 @@ async function playNext(page: Page) {
 }
 
 async function getBrowser(): Promise<Browser> {
-  const cacheDir: string = process.cwd() + "/.cache";
-  const platform: browsers.BrowserPlatform = browsers.detectBrowserPlatform() || browsers.BrowserPlatform.LINUX;
-  const browser: browsers.Browser = browsers.Browser.CHROME;
-  const buildId: string = await browsers.resolveBuildId(browsers.Browser.CHROME, platform, "stable",);
-  const executablePath: string = browsers.computeExecutablePath({ cacheDir, browser, buildId, });
-
+  await installBrowser.installBrowser();
+  const browserPath = await installBrowser.getBrowserPath();
+  console.log(browserPath);
   return puppeteer.launch({
-    executablePath,
+    executablePath: browserPath,
     headless: false,
     args: [
       "--no-sandbox",
