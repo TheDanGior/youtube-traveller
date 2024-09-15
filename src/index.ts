@@ -1,12 +1,11 @@
-import * as browsers from "@puppeteer/browsers";
 import { google } from 'googleapis';
 import fs from "node:fs";
-import puppeteer, { Browser, ElementHandle, Page } from "puppeteer-core";
+import puppeteer, { Browser, ElementHandle, Page, ScreenRecorder } from "puppeteer-core";
 import yargs from 'yargs';
 import { hideBin } from 'yargs/helpers';
+import * as installBrowser from './browser';
 import csv from './csv';
-import * as installBrowser from './browser'
-import {VideoDetails} from './types';
+import { VideoDetails } from './types';
 
 const WINDOW_WIDTH = 1024;
 const WINDOW_HEIGHT = 768;
@@ -34,6 +33,18 @@ const opts = yargs(hideBin(process.argv))
     description: "The location to save results",
     default: 'output'
   })
+  .option('no-screenshots', {
+    alias: 'ns',
+    type: 'boolean',
+    description: 'Save screenshots of each page',
+    default: false
+  })
+  .option('save-recording', {
+    alias: 'r',
+    type: 'boolean',
+    description: 'Save a screenrecording of the browser',
+    default: false
+  })
   .option('youtube-api-key', {
     type: 'string',
     description: 'Youtube api key, may also be set in the environment variable YOUTUBE_API_KEY'
@@ -46,16 +57,18 @@ const NUMBER_OF_ITERATIONS = opts.iterations;
 const CREATE_CSV = !opts.noCsv;
 const BASE_OUTPUT_DIR = opts.outputDir;
 const YOUTUBE_API_KEY = opts.youtubeApiKey || process.env.YOUTUBE_API_KEY;
+const SAVE_SCREENSHOTS = !opts.noScreenshots;
+const SAVE_RECORDING = opts.saveRecording;
 
 async function main(): Promise<void> {
-
-  console.log({
-    STARTING_LINK,
-    NUMBER_OF_ITERATIONS,
-    CREATE_CSV,
-    BASE_OUTPUT_DIR,
-    YOUTUBE_API_KEY
-  })
+  console.log(`Starting at ${STARTING_LINK}`);
+  console.log(`Following up to ${NUMBER_OF_ITERATIONS} suggestions`);
+  console.log(`Saving to the ${BASE_OUTPUT_DIR} directory`);
+  console.log(`${SAVE_SCREENSHOTS ? '' : 'Not '}Saving screenshots`)
+  console.log(`${SAVE_RECORDING ? '' : 'Not '}Saving screen recording`)
+  console.log(`${CREATE_CSV ? '' : 'Not '}Converting to CSV`);
+  console.log(`${!!YOUTUBE_API_KEY ? '' : 'Do not '}Have YouTube api key`);
+  console.log();
 
   const getVideoId = await import('get-video-id');
   const videoId = getVideoId.default(STARTING_LINK);
@@ -74,11 +87,15 @@ async function main(): Promise<void> {
   const page: Page = await browser.newPage();
 
   await page.setViewport({ width: WINDOW_WIDTH, height: WINDOW_HEIGHT });
+  var recorder : ScreenRecorder | null = null;
+  if (SAVE_RECORDING) {
+    recorder = await page.screencast({ path: `${outputDir}/recording.webm` });
+  }
   await page.goto(STARTING_LINK, { waitUntil: ["load", "networkidle2"] });
   await waitForVideoToPlay(page);
-  const a = await getVideoDetails(page.url(), 0);
-  console.log("00000: " + page.url() + ": " + a?.title);
-  saveVideoDetails(outputPath, a);
+  const vidDetails = await getVideoDetails(page.url(), 0);
+  console.log("00000: " + page.url() + ": " + vidDetails?.title);
+  saveVideoDetails(outputPath, vidDetails);
   await page.screenshot({ path: `${screenshotDir}/screenshot-00000.png` });
 
   for (var i = 1; i <= NUMBER_OF_ITERATIONS; i++) {
@@ -89,7 +106,13 @@ async function main(): Promise<void> {
     console.log(String(i).padStart(5, "0") + ": " + page.url() + ": " + a.title || '');
     saveVideoDetails(outputPath, a);
 
-    await page.screenshot({ path: `${screenshotDir}/screenshot-${String(i).padStart(5, "0")}.png` });
+    if (SAVE_SCREENSHOTS) {
+      await page.screenshot({ path: `${screenshotDir}/screenshot-${String(i).padStart(5, "0")}.png` });
+    }
+  }
+
+  if (!!recorder) {
+    await recorder.stop();
   }
 
   await page.close();
@@ -97,6 +120,7 @@ async function main(): Promise<void> {
 
 
   if (CREATE_CSV) {
+    console.log();
     csv(videoId.id || undefined, true);
   }
 }
@@ -187,7 +211,6 @@ async function playNext(page: Page) {
 async function getBrowser(): Promise<Browser> {
   await installBrowser.installBrowser();
   const browserPath = await installBrowser.getBrowserPath();
-  console.log(browserPath);
   return puppeteer.launch({
     executablePath: browserPath,
     headless: false,
