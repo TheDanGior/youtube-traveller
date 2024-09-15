@@ -6,22 +6,26 @@ It works by opening a browser, navigating to the given youtube video, skipping a
 
 ## Quick Start
 1. Install Node.js 20
-2. Run `npx youtube-traveller -u <youtube url>`
+2. Run `npx youtube-traveller -u "<youtube url>"`
 
 ## CLI Options
 ```
 Options:
-      --help             Show help                                     [boolean]
-      --version          Show version number                           [boolean]
-  -u, --url              The YouTube URL to start with       [string] [required]
-      --no-csv           Skip csv generation at the end
+      --help                  Show help                                [boolean]
+      --version               Show version number                      [boolean]
+  -u, --url                   The YouTube URL to start with  [string] [required]
+      --no-csv                Skip csv generation at the end
                                                       [boolean] [default: false]
-  -i, --iterations       The maximum number of videos to follow
+  -i, --iterations            The maximum number of videos to follow
                                                          [number] [default: 100]
-      --output-dir       The location to save results
+      --output-dir            The location to save results
                                                     [string] [default: "output"]
-      --youtube-api-key  Youtube api key, may also be set in the environment
-                         variable YOUTUBE_API_KEY                       [string]
+      --no-screenshots, --ns  Save screenshots of each page
+                                                      [boolean] [default: false]
+  -r, --save-recording        Save a screenrecording of the browser
+                                                      [boolean] [default: false]
+      --youtube-api-key       Youtube api key, may also be set in the
+                              environment variable YOUTUBE_API_KEY      [string]
 
 ```
 
