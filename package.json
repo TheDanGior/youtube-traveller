@@ -1,6 +1,6 @@
 {
   "name": "youtube-traveller",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "scripts": {
     "start": "tsx ./src/index.ts",
     "clean": "rimraf ./output ./dist",
