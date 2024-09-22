@@ -32,7 +32,11 @@ Options:
 ## Details
 This runs in a seperate version of chrome downloaded to the `.cache` directory. It will not interfear with your regular browser or any services you are logged into. It does not run headless, it will open up a window which may take focus away from anything else you care working on. Running headless may be possible in a future version.
 
-To save the video details, save a YouTube API v3 api key to the `YOUTUBE_API_KEY` environemtn variable, or use the `--youtube-api-key` flag.
+To save the video details, save a YouTube API v3 api key to the `YOUTUBE_API_KEY` environment variable, or use the `--youtube-api-key` flag.
+
+## Known Issues
+* It will fail when trying to play an age restricted video, since login is not implemented
+* Youtube shorts and livestreams will usually cause a failure
 
 ## Future Enhancements
 * Run headless

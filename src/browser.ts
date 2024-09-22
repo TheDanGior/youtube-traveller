@@ -1,27 +1,27 @@
 import {
   Browser,
+  BrowserPlatform,
+  computeExecutablePath,
+  detectBrowserPlatform,
   install,
   resolveBuildId,
-  detectBrowserPlatform,
-  BrowserPlatform,
-  computeExecutablePath
 } from "@puppeteer/browsers";
 
+const browser : Browser = Browser.CHROME;
+const platform = detectBrowserPlatform() || BrowserPlatform.LINUX;
+const cacheDir = process.cwd() + "/.cache";
+const tag =  "stable";
+
+
 export async function installBrowser() {
-  const cacheDir = process.cwd() + "/.cache";
-  const browser = Browser.CHROME;
-  const platform: BrowserPlatform = detectBrowserPlatform() || BrowserPlatform.LINUX;
-  const buildId = await resolveBuildId(browser, platform, "stable");
+  const buildId = await resolveBuildId(browser, platform, tag);
   await install({ browser, buildId, cacheDir });
 }
 
 export async function getBrowserPath(): Promise<string> {
-  const cacheDir: string = process.cwd() + "/.cache";
-  const platform: BrowserPlatform = detectBrowserPlatform() || BrowserPlatform.LINUX;
-  const browser: Browser = Browser.CHROME;
-  const buildId: string = await resolveBuildId(Browser.CHROME, platform, "stable",);
-  const executablePath: string = computeExecutablePath({ cacheDir, browser, buildId, });
-  return executablePath
+  const buildId = await resolveBuildId(browser, platform, tag);
+  const executablePath = computeExecutablePath({ cacheDir, browser, buildId, });
+  return executablePath;
 }
 
 if (require.main === module) {
